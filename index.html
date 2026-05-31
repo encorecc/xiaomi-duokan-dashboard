@@ -185,7 +185,7 @@ async function fetchHighlights(key) {
     .map(m=>({ text:m.markText, book:m.bookTitle||"" }));
 }
 
-const IMA_BASE = "https://ima.qq.com/openapi/note/v1";
+const IMA_BASE = "https://ima-proxy.reverb-cheng.workers.dev";
 async function imaFetch(ep, cid, key, body) {
   let r;
   try {
