@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>書房</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html,body { width:100%; height:100%; overflow:hidden; background:#f5f2ec;
+  font-family:'Noto Serif TC','SimSun','Songti SC',serif; color:#111; }
+
+/* Layout */
+#app { width:100%; height:100%; display:flex; flex-direction:column; }
+#topbar { display:flex; justify-content:space-between; align-items:center;
+  padding:9px 14px; background:#fff; border-bottom:2px solid #111; flex-shrink:0; }
+#main { flex:1; display:grid; grid-template-columns:1fr 1px 1fr; overflow:hidden; }
+#divider { background:#111; }
+#left, #right { padding:11px 13px; display:flex; flex-direction:column; gap:10px; overflow:hidden; }
+#bottombar { display:flex; justify-content:space-between; align-items:center;
+  padding:5px 14px; background:#fff; border-top:1px solid #ddd;
+  font-size:8px; color:#bbb; font-family:'Courier New',monospace; flex-shrink:0; }
+
+/* Top bar */
+#brand .sub  { font-size:8px; letter-spacing:4px; color:#bbb; }
+#brand .main { font-size:19px; font-weight:900; letter-spacing:1px; }
+#topright { display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
+#clock { font-size:38px; font-family:'Courier New',monospace; font-weight:700;
+  letter-spacing:2px; line-height:1; }
+#datestr { font-size:11px; letter-spacing:1px; }
+#syncstatus { font-size:9px; color:#aaa; }
+#syncerr { font-size:9px; color:#c00; cursor:pointer; }
+#btn-fullscreen { font-size:10px; background:transparent; border:1px solid #ddd;
+  color:#999; padding:3px 8px; font-family:inherit; letter-spacing:1px; margin-top:4px; }
+
+/* Sections */
+.section-label { font-size:9px; letter-spacing:2px; font-weight:700; text-transform:uppercase; }
+.divider-line  { border-top:1px solid #e0e0e0; flex-shrink:0; }
+
+/* Progress bar */
+.pbar-wrap { background:#ddd; border:1px solid #bbb; }
+.pbar-fill  { background:#111; height:100%; }
+
+/* Tabs */
+#tabs { display:flex; border-bottom:1px solid #ddd; flex-shrink:0; }
+.tab { flex:1; padding:4px 2px; font-size:9px; background:transparent; color:#888;
+  border:none; font-family:inherit; border-right:1px solid #ddd; cursor:pointer; }
+.tab.active { background:#111; color:#fff; }
+
+/* Book list */
+#booklist { overflow-y:auto; flex:1; }
+.bookcard { border-bottom:1px solid #e8e8e8; padding:8px 0; cursor:pointer; }
+.bookcard:active { opacity:0.5; }
+.bookcard-top { display:flex; justify-content:space-between; align-items:baseline; gap:4px; }
+.bookcard-title { font-weight:700; font-size:13px; flex:1;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.bookcard-badge { font-size:10px; border:1px solid #bbb; padding:1px 4px;
+  flex-shrink:0; letter-spacing:0.5px; }
+.bookcard-meta { display:flex; justify-content:space-between; margin-top:2px; }
+.bookcard-author { font-size:11px; color:#777; }
+.bookcard-tap { font-size:9px; color:#bbb; }
+.bookcard-progress { margin-top:4px; }
+.bookcard-pct { display:flex; justify-content:space-between;
+  font-size:10px; color:#888; margin-bottom:3px; }
+.empty { font-size:11px; color:#bbb; font-style:italic; padding:10px 0; }
+
+/* Highlight box */
+#hlbox { border:1px solid #ddd; padding:10px 11px; background:#fff; flex-shrink:0; }
+#hlbox .lbl { font-size:9px; letter-spacing:3px; color:#bbb; margin-bottom:6px; }
+#hltext { font-size:13px; line-height:1.85; border-left:3px solid #111; padding-left:8px; }
+#hlfoot { display:flex; justify-content:space-between; align-items:center; margin-top:6px; }
+#hlbook { font-size:9px; color:#999; }
+#btn-nexthl { font-size:9px; background:transparent; border:1px solid #ddd;
+  padding:2px 7px; color:#999; font-family:inherit; }
+
+/* Stats grid */
+#statgrid { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+.statbox { border:1px solid #e8e8e8; padding:7px 9px; background:#fff; }
+.statbox .lbl { font-size:8px; color:#bbb; letter-spacing:1px; margin-bottom:3px; }
+.statbox .val { font-size:17px; font-weight:700; font-family:'Courier New',monospace; }
+
+/* Todos */
+#todolist { flex:1; }
+.todo { display:flex; align-items:center; gap:8px; padding:6px 0;
+  border-bottom:1px dashed #e8e8e8; cursor:pointer; }
+.todo-check { font-size:13px; font-family:monospace; flex-shrink:0; }
+.todo-text  { font-size:12px; line-height:1.5; }
+.todo-text.done { color:#ccc; text-decoration:line-through; }
+
+/* Year goal */
+#goalrow { display:flex; justify-content:space-between; margin-bottom:5px; }
+#goalsub { font-size:9px; color:#999; margin-top:3px; }
+
+/* Diary */
+#diary-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; }
+#diary-meta { display:flex; gap:8px; align-items:center; }
+#diary-count { font-size:9px; color:#bbb; }
+#diary-count.warn { color:#c00; }
+#btn-history { font-size:9px; background:transparent; border:none;
+  color:#999; font-family:inherit; padding:0; cursor:pointer; }
+#diary-dateline { display:flex; justify-content:space-between; font-size:9px;
+  color:#bbb; margin-bottom:4px; }
+#diary-textarea { width:100%; height:82px; background:#fff; border:1px solid #ddd;
+  padding:8px 10px; font-size:12px; line-height:1.7; resize:none;
+  font-family:'Noto Serif TC','SimSun',serif; color:#111; }
+#diary-err { font-size:9px; color:#c00; margin-top:3px; }
+#diary-btns { display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-top:5px; }
+.diary-btn { padding:7px 0; font-size:10px; letter-spacing:1px;
+  font-family:inherit; border:none; cursor:pointer; }
+#diary-target { font-size:8px; color:#ccc; text-align:right; margin-top:3px; }
+#history-list { max-height:155px; overflow-y:auto; }
+.hentry { border-bottom:1px dashed #e8e8e8; padding:6px 0; }
+.hentry-date { font-size:9px; color:#bbb; margin-bottom:2px; }
+.hentry-text { font-size:11px; color:#555; line-height:1.6; }
+
+/* Setup */
+#setup { width:100%; height:100%; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; padding:24px; }
+#setup-box { width:100%; max-width:340px; background:#fff;
+  border:1px solid #ddd; padding:22px; }
+#steps { display:flex; align-items:center; margin-bottom:20px; }
+.step-dot { width:24px; height:24px; border-radius:50%; text-align:center;
+  line-height:24px; font-size:11px; font-family:monospace; flex-shrink:0; }
+.step-dot.active  { background:#111; color:#fff; }
+.step-dot.done    { background:#111; color:#fff; }
+.step-dot.pending { background:#e8e8e8; color:#aaa; }
+.step-line { flex:1; height:1px; margin:0 6px; margin-bottom:12px; }
+.step-line.done   { background:#111; }
+.step-line.pending { background:#e8e8e8; }
+.step-label { font-size:8px; text-align:center; margin-top:3px; }
+.step-label.active { color:#111; }
+.step-label.other  { color:#aaa; }
+.setup-title { font-size:13px; font-weight:700; margin-bottom:4px; }
+.setup-desc  { font-size:10px; color:#999; margin-bottom:14px; line-height:1.8; }
+.setup-input { width:100%; padding:10px 12px; font-size:12px;
+  border:1px solid #ddd; font-family:monospace; background:#fafafa;
+  margin-bottom:10px; display:block; }
+.setup-btn { width:100%; padding:11px 0; font-size:12px; letter-spacing:2px;
+  border:none; font-family:inherit; cursor:pointer; margin-top:4px; }
+.setup-btn.on  { background:#111; color:#fff; }
+.setup-btn.off { background:#e0e0e0; color:#aaa; cursor:default; }
+.setup-back { width:100%; padding:9px 0; font-size:11px; background:transparent;
+  color:#888; border:1px solid #ddd; font-family:inherit; margin-top:6px; cursor:pointer; }
+#folder-list { border:1px solid #eee; max-height:200px; overflow-y:auto; margin-bottom:12px; }
+.folder-item { padding:10px 12px; cursor:pointer; font-size:12px;
+  border-bottom:1px solid #f5f5f5; display:flex; justify-content:space-between; align-items:center; }
+.folder-item.selected { background:#111; color:#fff; }
+.folder-count { font-size:10px; opacity:0.5; }
+#setup-note { font-size:9px; color:#ccc; margin-top:14px; text-align:center; line-height:1.8; }
+
+::-webkit-scrollbar { width:3px; }
+::-webkit-scrollbar-thumb { background:#ccc; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// ── API helpers ───────────────────────────────────────────
+const WEREAD_BASE = "https://weread.qq.com/api";
+async function wereadFetch(path, key) {
+  const r = await fetch(WEREAD_BASE + path, { headers:{ Authorization:"Bearer "+key } });
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
+async function fetchBookshelf(key) {
+  const d = await wereadFetch("/shelf/friendCommon", key);
+  return (d.books||[]).map(b=>({
+    id: b.bookId,
+    title: b.book?.title||"未知",
+    author: b.book?.author||"",
+    status: b.finishedDate?"done": b.progress>0?"reading":"want",
+    progress: Math.round((b.progress||0)*100),
+    readingTime: b.readingTime||0,
+  }));
+}
+async function fetchStats(key) {
+  const d = await wereadFetch("/readdata/summary?synckey=0", key);
+  return { totalDays:d.totalReadDay||0, totalTime:d.totalReadTime||0,
+           weekTime:d.totalReadTime7Days||0, totalBooks:d.totalBookCount||0 };
+}
+async function fetchHighlights(key) {
+  const d = await wereadFetch("/book/bookmarklist", key);
+  return (d.updated||[]).filter(m=>m.type===1)
+    .sort(()=>Math.random()-0.5).slice(0,8)
+    .map(m=>({ text:m.markText, book:m.bookTitle||"" }));
+}
+
+const IMA_BASE = "https://ima.qq.com/openapi/note/v1";
+async function imaFetch(ep, cid, key, body) {
+  const r = await fetch(IMA_BASE+"/"+ep, {
+    method:"POST",
+    headers:{ "Content-Type":"application/json",
+               Authorization:"Bearer "+key, "X-Client-ID":cid },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
+async function fetchFolders(cid, key) {
+  const d = await imaFetch("list_note_folder_by_cursor", cid, key, { cursor:"0", limit:50 });
+  return (d.folders||[]).map(f=>({
+    id: f.basic_info?.folder_id||f.folder_id,
+    name: f.basic_info?.name||f.name,
+    count: f.basic_info?.note_number||0,
+  })).filter(f=>f.name);
+}
+async function pushToIma(cid, key, fid, label, text) {
+  const md = "# 📖 每日一頁｜"+label+"\n\n"+text+"\n";
+  await imaFetch("import_doc", cid, key, { content_format:1, content:md, folder_id:fid });
+}
+
+// ── Utils ─────────────────────────────────────────────────
+function todayKey() {
+  const d=new Date();
+  return "diary_"+d.getFullYear()+"_"+pad(d.getMonth()+1)+"_"+pad(d.getDate());
+}
+function todayLabel() {
+  const d=new Date(), days=["日","一","二","三","四","五","六"];
+  return d.getFullYear()+"."+pad(d.getMonth()+1)+"."+pad(d.getDate())+" 週"+days[d.getDay()];
+}
+function dayLabel(key) {
+  const p=key.replace("diary_","").split("_"), d=new Date(p[0],p[1]-1,p[2]);
+  const days=["日","一","二","三","四","五","六"];
+  return p[1]+"/"+p[2]+" 週"+days[d.getDay()];
+}
+function pad(n){ return String(n).padStart(2,"0"); }
+function fmtMin(m){ const h=Math.floor(m/60),mm=m%60; return h>0?h+"h"+(mm>0?mm+"m":""):mm+"m"; }
+function loadConfig(){ try{ return JSON.parse(localStorage.getItem("dashboard_config")||"null"); }catch{ return null; } }
+function saveConfig(c){ localStorage.setItem("dashboard_config",JSON.stringify(c)); }
+
+// ── State ─────────────────────────────────────────────────
+let S = {
+  config: loadConfig(),
+  books:[], stats:null, highlights:[], hlIndex:0,
+  wereadLoading:false, wereadError:"",
+  activeTab:"reading",
+  diaryText: "", diarySaved:false, imaSynced:false, imaSyncing:false, imaError:"",
+  showHistory:false, diaryHistory:[],
+  isFullscreen:false, clock:"",
+  // setup
+  step:1, wrKey:"", imaCid:"", imaKey:"", folders:[], selFolder:null,
+  setupLoading:false, setupError:"",
+  // todos
+  todos:[
+    {id:0,text:"今日閱讀 30 分鐘"},
+    {id:1,text:"整理本週書摘"},
+    {id:2,text:"喝夠八杯水"},
+  ],
+};
+const MAX_CHARS=500;
+const YEAR_GOAL=12;
+
+function getState(){ return S; }
+function setState(patch){
+  S=Object.assign({},S,patch);
+  render();
+}
+
+// ── Clock ─────────────────────────────────────────────────
+function updateClock(){
+  const d=new Date(), days=["星期日","星期一","星期二","星期三","星期四","星期五","星期六"];
+  const time=pad(d.getHours())+":"+pad(d.getMinutes());
+  const date=d.getFullYear()+"."+pad(d.getMonth()+1)+"."+pad(d.getDate())+" "+days[d.getDay()];
+  setState({ clockTime:time, clockDate:date });
+}
+updateClock();
+// align to next minute
+const msToNext=(60-new Date().getSeconds())*1000;
+setTimeout(()=>{ updateClock(); setInterval(updateClock,60000); }, msToNext);
+
+// ── WakeLock ──────────────────────────────────────────────
+let wl=null;
+async function requestWL(){
+  try{ if("wakeLock" in navigator) wl=await navigator.wakeLock.request("screen"); }catch(_){}
+}
+requestWL();
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") requestWL(); });
+
+// ── Fullscreen ────────────────────────────────────────────
+document.addEventListener("fullscreenchange",()=>{
+  setState({ isFullscreen:!!document.fullscreenElement });
+});
+function toggleFS(){
+  if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+  else document.exitFullscreen();
+}
+
+// ── Anti-ghosting refresh every 30min ─────────────────────
+setInterval(()=>{
+  document.body.style.filter="invert(1)";
+  setTimeout(()=>{ document.body.style.filter=""; },200);
+},30*60*1000);
+
+// ── Diary local storage ───────────────────────────────────
+function loadDiaryLocal(){
+  const key=todayKey();
+  const text=localStorage.getItem(key)||"";
+  const idx=JSON.parse(localStorage.getItem("diary_index")||"[]");
+  const hist=idx.filter(k=>k!==key).slice(0,7)
+    .map(k=>({ key:k, text:localStorage.getItem(k)||"" }))
+    .filter(e=>e.text);
+  setState({ diaryText:text, diarySaved:!!text, diaryHistory:hist });
+}
+loadDiaryLocal();
+
+function saveDiaryLocal(text){
+  const key=todayKey();
+  localStorage.setItem(key,text);
+  const idx=JSON.parse(localStorage.getItem("diary_index")||"[]");
+  if(!idx.includes(key)){ idx.unshift(key); localStorage.setItem("diary_index",JSON.stringify(idx.slice(0,30))); }
+}
+
+// ── Fetch weread ──────────────────────────────────────────
+function doFetchWeread(cfg){
+  if(!cfg?.wereadKey) return;
+  setState({ wereadLoading:true, wereadError:"" });
+  Promise.all([fetchBookshelf(cfg.wereadKey), fetchStats(cfg.wereadKey), fetchHighlights(cfg.wereadKey)])
+    .then(([books,stats,highlights])=>{ setState({ books,stats,highlights,wereadLoading:false }); })
+    .catch(()=>{ setState({ wereadError:"微信讀書連接失敗，點擊重試", wereadLoading:false }); });
+}
+if(S.config) doFetchWeread(S.config);
+setInterval(()=>{ if(S.config) doFetchWeread(S.config); },60*60*1000);
+
+// ── Render helpers ────────────────────────────────────────
+function el(tag,attrs,...children){
+  const e=document.createElement(tag);
+  for(const [k,v] of Object.entries(attrs||{})){
+    if(k==="className") e.className=v;
+    else if(k.startsWith("on")) e.addEventListener(k.slice(2).toLowerCase(),v);
+    else if(k==="style" && typeof v==="object") Object.assign(e.style,v);
+    else e.setAttribute(k,v);
+  }
+  for(const c of children){
+    if(c==null||c===false) continue;
+    e.appendChild(typeof c==="string"||typeof c==="number" ? document.createTextNode(c) : c);
+  }
+  return e;
+}
+function pbar(val,h=5){
+  const w=el("div",{className:"pbar-wrap",style:{height:h+"px"}});
+  w.appendChild(el("div",{className:"pbar-fill",style:{width:Math.min(100,Math.max(0,val))+"%",height:"100%"}}));
+  return w;
+}
+
+// ── Views ─────────────────────────────────────────────────
+function renderSetup(){
+  const {step,wrKey,imaCid,imaKey,folders,selFolder,setupLoading,setupError}=S;
+
+  const steps=["微信讀書","IMA","筆記本"];
+  const stepsEl=el("div",{id:"steps"});
+  steps.forEach((lbl,i)=>{
+    const n=i+1;
+    const dot=el("div",{className:"step-dot "+(step>n?"done":step===n?"active":"pending")},
+      step>n?"✓":String(n));
+    const col=el("div",{style:{textAlign:"center",flexShrink:"0"}}, dot,
+      el("div",{className:"step-label "+(step===n?"active":"other")},lbl));
+    stepsEl.appendChild(col);
+    if(i<2) stepsEl.appendChild(el("div",{className:"step-line "+(step>n?"done":"pending")}));
+  });
+
+  let content;
+  if(step===1){
+    const inp=el("input",{type:"password",className:"setup-input",placeholder:"wrk-xxxxxxxxxxxxxxxx",value:wrKey});
+    inp.addEventListener("input",e=>setState({wrKey:e.target.value}));
+    const btn=el("button",{className:"setup-btn "+(wrKey.trim()?"on":"off"),
+      onClick:()=>wrKey.trim()&&setState({step:2})},"下一步 →");
+    content=el("div",{},
+      el("div",{className:"setup-title"},"微信讀書 API Key"),
+      el("div",{className:"setup-desc"},"微信讀書 App →「我」→「設置」→「Skill」→ 生成 API Key"),
+      inp, btn);
+  } else if(step===2){
+    const i1=el("input",{type:"text",className:"setup-input",placeholder:"Client ID",value:imaCid});
+    const i2=el("input",{type:"password",className:"setup-input",placeholder:"API Key",value:imaKey});
+    i1.addEventListener("input",e=>setState({imaCid:e.target.value}));
+    i2.addEventListener("input",e=>setState({imaKey:e.target.value}));
+    const ok=imaCid.trim()&&imaKey.trim()&&!setupLoading;
+    const btn=el("button",{className:"setup-btn "+(ok?"on":"off"),onClick:async()=>{
+      if(!ok) return;
+      setState({setupLoading:true,setupError:""});
+      try{
+        const list=await fetchFolders(imaCid.trim(),imaKey.trim());
+        setState({folders:list,step:3,setupLoading:false});
+      }catch{
+        setState({setupError:"連接失敗，請確認 ID 和 Key",setupLoading:false});
+      }
+    }},setupLoading?"連接中…":"連接 IMA →");
+    const back=el("button",{className:"setup-back",onClick:()=>setState({step:1})},"← 返回");
+    content=el("div",{},
+      el("div",{className:"setup-title"},"IMA 笔记连接"),
+      el("div",{className:"setup-desc"},"ima.qq.com/agent-interface 獲取 Client ID 和 API Key"),
+      i1,i2,
+      setupError?el("div",{style:{fontSize:"10px",color:"#c00",marginBottom:"8px"}},setupError):"",
+      btn,back);
+  } else {
+    const list=el("div",{id:"folder-list"});
+    if(folders.length===0){
+      list.appendChild(el("div",{style:{padding:"16px",fontSize:"11px",color:"#aaa",textAlign:"center"}},"沒有找到筆記本"));
+    } else {
+      folders.forEach(f=>{
+        const item=el("div",{className:"folder-item"+(selFolder?.id===f.id?" selected":""),
+          onClick:()=>setState({selFolder:f})},
+          el("span",{},f.name),
+          el("span",{className:"folder-count"},f.count+" 篇"));
+        list.appendChild(item);
+      });
+    }
+    const btn=el("button",{className:"setup-btn "+(selFolder?"on":"off"),onClick:()=>{
+      if(!selFolder) return;
+      const cfg={wereadKey:wrKey.trim(),imaClientId:imaCid.trim(),imaKey:imaKey.trim(),
+                 imaFolderId:selFolder.id,imaFolderName:selFolder.name};
+      saveConfig(cfg);
+      setState({config:cfg});
+      doFetchWeread(cfg);
+    }},"開始使用 ✓");
+    content=el("div",{},
+      el("div",{className:"setup-title"},"選擇日記筆記本"),
+      el("div",{className:"setup-desc"},"日記每天自動存入這個筆記本"),
+      list,btn);
+  }
+
+  return el("div",{id:"setup"},
+    el("div",{style:{fontSize:"9px",letterSpacing:"4px",color:"#bbb",marginBottom:"6px"}},"READING DASHBOARD"),
+    el("div",{style:{fontSize:"26px",fontWeight:"900",marginBottom:"24px",letterSpacing:"1px"}},"書房"),
+    el("div",{id:"setup-box"}, stepsEl, content),
+    el("div",{id:"setup-note"},"所有 Key 僅儲存在本機瀏覽器",el("br",{}),"不經過任何服務器"));
+}
+
+function renderMain(){
+  const {books,stats,highlights,hlIndex,wereadLoading,wereadError,
+         activeTab,diaryText,diarySaved,imaSynced,imaSyncing,imaError,
+         showHistory,diaryHistory,isFullscreen,clockTime,clockDate,config,todos}=S;
+
+  const reading=books.filter(b=>b.status==="reading");
+  const want=books.filter(b=>b.status==="want");
+  const done=books.filter(b=>b.status==="done");
+  const tabBooks={reading,want,done};
+  const goalPct=Math.round(((stats?.totalBooks||done.length)/YEAR_GOAL)*100);
+  const hl=highlights[hlIndex]||null;
+
+  // ── Topbar ──
+  const topbar=el("div",{id:"topbar"},
+    el("div",{style:{display:"flex",alignItems:"center",gap:"10px"}},
+      el("div",{id:"brand"},
+        el("div",{className:"sub"},"READING DASHBOARD"),
+        el("div",{className:"main"},"書房")),
+      el("button",{id:"btn-fullscreen",onClick:toggleFS},
+        isFullscreen?"⊡ 退出":"⊞ 全屏")),
+    el("div",{id:"topright"},
+      wereadLoading?el("span",{id:"syncstatus"},"同步中…"):"",
+      wereadError?el("span",{id:"syncerr",onClick:()=>doFetchWeread(config)},wereadError):"",
+      !wereadLoading&&!wereadError?el("span",{style:{fontSize:"8px",color:"#ddd"}},"每小時自動更新"):"",
+      el("div",{id:"clock"},clockTime||"--:--"),
+      el("div",{id:"datestr"},clockDate||"")));
+
+  // ── Left column ──
+  // Year goal
+  const goalSec=el("div",{},
+    el("div",{id:"goalrow"},
+      el("span",{className:"section-label"},"2026 年度目標"),
+      el("span",{style:{fontSize:"10px"}},(stats?.totalBooks??done.length)+" / "+YEAR_GOAL+" 本")),
+    pbar(goalPct,6),
+    el("div",{id:"goalsub"},stats
+      ?"累計 "+Math.round(stats.totalTime/3600)+"h · "+stats.totalDays+" 天"
+      :"還差 "+Math.max(0,YEAR_GOAL-done.length)+" 本"));
+
+  // Tabs
+  const tabLabels={reading:"在讀("+reading.length+")",want:"想讀("+want.length+")",done:"已讀("+done.length+")"};
+  const tabs=el("div",{id:"tabs"});
+  ["reading","want","done"].forEach(t=>{
+    tabs.appendChild(el("button",{className:"tab"+(activeTab===t?" active":""),
+      onClick:()=>setState({activeTab:t})},tabLabels[t]));
+  });
+
+  // Book list
+  const bl=el("div",{id:"booklist"});
+  if(wereadLoading){ bl.appendChild(el("div",{className:"empty"},"載入中…")); }
+  else if(!tabBooks[activeTab].length){ bl.appendChild(el("div",{className:"empty"},"暫無書目")); }
+  else tabBooks[activeTab].forEach(book=>{
+    const card=el("div",{className:"bookcard",onClick:()=>{
+      window.location.href="weread://reading?bookId="+book.id;
+    }},
+      el("div",{className:"bookcard-top"},
+        el("span",{className:"bookcard-title"},book.title),
+        el("span",{className:"bookcard-badge"},
+          {reading:"在讀",want:"想讀",done:"已讀"}[book.status])),
+      el("div",{className:"bookcard-meta"},
+        el("span",{className:"bookcard-author"},book.author),
+        el("span",{className:"bookcard-tap"},"點擊閱讀 ›")));
+    if(book.status==="reading"){
+      const pg=el("div",{className:"bookcard-progress"},
+        el("div",{className:"bookcard-pct"},
+          el("span",{},"已讀 "+book.progress+"%"),
+          book.readingTime>0?el("span",{},fmtMin(Math.round(book.readingTime/60))):""),
+        pbar(book.progress));
+      card.appendChild(pg);
+    }
+    bl.appendChild(card);
+  });
+
+  const bookSec=el("div",{style:{flex:"1",display:"flex",flexDirection:"column",minHeight:"0"}},
+    tabs, bl);
+
+  // Diary
+  let diaryContent;
+  if(showHistory){
+    const hist=el("div",{id:"history-list"});
+    if(!diaryHistory.length){
+      hist.appendChild(el("div",{style:{fontSize:"10px",color:"#bbb",fontStyle:"italic"}},"暫無往期記錄"));
+    } else {
+      diaryHistory.forEach(e=>{
+        hist.appendChild(el("div",{className:"hentry"},
+          el("div",{className:"hentry-date"},dayLabel(e.key)),
+          el("div",{className:"hentry-text"},e.text.length>55?e.text.slice(0,55)+"…":e.text)));
+      });
+    }
+    diaryContent=hist;
+  } else {
+    const statusStr=(diarySaved?"✓本機 ":"")+(imaSynced?"✓IMA":"");
+    const ta=el("textarea",{id:"diary-textarea",placeholder:"今天有什麼想記下來的…"},diaryText);
+    ta.value=diaryText;
+    ta.addEventListener("input",e=>{
+      if(e.target.value.length<=MAX_CHARS)
+        setState({diaryText:e.target.value,diarySaved:false,imaSynced:false});
+      else e.target.value=diaryText;
+    });
+    const btnLocal=el("button",{className:"diary-btn",
+      style:{background:diarySaved?"transparent":"#111",
+             color:diarySaved?"#bbb":"#fff",
+             border:diarySaved?"1px solid #ddd":"1px solid #111",
+             cursor:diarySaved?"default":"pointer"},
+      onClick:()=>{
+        if(!diaryText.trim()||diarySaved) return;
+        saveDiaryLocal(diaryText);
+        setState({diarySaved:true});
+      }},diarySaved?"✓ 已存本機":"存本機");
+    const btnIma=el("button",{className:"diary-btn",
+      style:{background:imaSynced?"transparent":"#444",
+             color:imaSynced?"#bbb":"#fff",
+             border:imaSynced?"1px solid #ddd":"1px solid #444",
+             cursor:(imaSynced||imaSyncing)?"default":"pointer"},
+      onClick:async()=>{
+        if(!diaryText.trim()||imaSynced||imaSyncing||!config?.imaClientId) return;
+        setState({imaSyncing:true,imaError:""});
+        try{
+          saveDiaryLocal(diaryText);
+          await pushToIma(config.imaClientId,config.imaKey,config.imaFolderId,todayLabel(),diaryText);
+          setState({imaSynced:true,diarySaved:true,imaSyncing:false});
+        }catch{
+          setState({imaError:"IMA 同步失敗，Key 可能已過期",imaSyncing:false});
+        }
+      }},imaSyncing?"同步中…":imaSynced?"✓ 已存IMA":"存入 IMA");
+    diaryContent=el("div",{},
+      el("div",{id:"diary-dateline"},
+        el("span",{},todayLabel()),
+        el("span",{},statusStr)),
+      ta,
+      imaError?el("div",{id:"diary-err"},imaError):"",
+      el("div",{id:"diary-btns"},btnLocal,btnIma),
+      el("div",{id:"diary-target"},"→ "+(config?.imaFolderName||"")));
+  }
+
+  const cntEl=el("span",{id:"diary-count"+(diaryText.length>MAX_CHARS*0.9?" warn":"")},
+    diaryText.length+"/"+MAX_CHARS);
+  const diarySec=el("div",{style:{flexShrink:"0"}},
+    el("div",{id:"diary-header"},
+      el("span",{className:"section-label"},"今日一頁"),
+      el("div",{id:"diary-meta"},
+        cntEl,
+        el("button",{id:"btn-history",onClick:()=>setState({showHistory:!showHistory})},
+          showHistory?"← 今日":"往期▾"))),
+    diaryContent);
+
+  const left=el("div",{id:"left"},goalSec,el("div",{className:"divider-line"}),
+    bookSec,el("div",{className:"divider-line"}),diarySec);
+
+  // ── Right column ──
+  // Highlight
+  let hlContent;
+  if(wereadLoading){ hlContent=el("div",{style:{fontSize:"11px",color:"#bbb"}},"載入中…"); }
+  else if(hl){
+    const foot=el("div",{id:"hlfoot"},
+      el("span",{id:"hlbook"},"——《"+hl.book+"》"));
+    if(highlights.length>1){
+      foot.appendChild(el("button",{id:"btn-nexthl",
+        onClick:()=>setState({hlIndex:(hlIndex+1)%highlights.length})},"換一條"));
+    }
+    hlContent=el("div",{},
+      el("div",{id:"hltext"},hl.text),foot);
+  } else {
+    hlContent=el("div",{style:{fontSize:"11px",color:"#bbb",fontStyle:"italic"}},"暫無書摘，去微信讀書劃線吧");
+  }
+  const hlbox=el("div",{id:"hlbox"},
+    el("div",{className:"lbl"},"今日書摘"),hlContent);
+
+  // Stats
+  const statData=[
+    {lbl:"閱讀時間",val:stats?fmtMin(Math.round((stats.weekTime||0)/60)):"—"},
+    {lbl:"閱讀天數",val:stats?stats.totalDays+"天":"—"},
+    {lbl:"書摘條數",val:highlights.length>0?highlights.length+"條":"—"},
+    {lbl:"完成書目",val:stats?stats.totalBooks+"本":done.length+"本"},
+  ];
+  const grid=el("div",{id:"statgrid"});
+  statData.forEach(s=>{
+    grid.appendChild(el("div",{className:"statbox"},
+      el("div",{className:"lbl"},s.lbl),
+      el("div",{className:"val"},s.val)));
+  });
+  const statSec=el("div",{},el("div",{className:"section-label",style:{marginBottom:"8px"}},"本週統計"),grid);
+
+  // Todos
+  const ITEMS=["今日閱讀 30 分鐘","整理本週書摘","喝夠八杯水"];
+  const todoList=el("div",{id:"todolist"});
+  ITEMS.forEach((txt,i)=>{
+    const key="todo_"+todayKey()+"_"+i;
+    let checked=localStorage.getItem(key)==="1";
+    const check=el("span",{className:"todo-check"},checked?"☑":"□");
+    const label=el("span",{className:"todo-text"+(checked?" done":"")},txt);
+    const row=el("div",{className:"todo",onClick:()=>{
+      checked=!checked;
+      localStorage.setItem(key,checked?"1":"0");
+      check.textContent=checked?"☑":"□";
+      label.className="todo-text"+(checked?" done":"");
+    }},check,label);
+    todoList.appendChild(row);
+  });
+  const todoSec=el("div",{style:{flex:"1"}},
+    el("div",{className:"section-label",style:{marginBottom:"7px"}},"今日計劃"),
+    todoList);
+
+  const right=el("div",{id:"right"},hlbox,el("div",{className:"divider-line"}),
+    statSec,el("div",{className:"divider-line"}),todoSec);
+
+  // ── Bottom ──
+  const bottom=el("div",{id:"bottombar"},
+    el("span",{},"在讀"+reading.length+" · 已讀"+done.length+" · 想讀"+want.length),
+    el("button",{style:{fontSize:"8px",background:"transparent",border:"none",
+      color:"#ccc",cursor:"pointer",fontFamily:"inherit"},
+      onClick:()=>{ localStorage.removeItem("dashboard_config"); setState({config:null}); }},
+      "重新設定"),
+    el("span",{},"書房 v0.4"));
+
+  return el("div",{id:"app"},topbar,
+    el("div",{id:"main"},left,el("div",{id:"divider"}),right),
+    bottom);
+}
+
+// ── Render ────────────────────────────────────────────────
+function render(){
+  const root=document.getElementById("app")||document.body.firstChild;
+  const newApp=S.config ? renderMain() : renderSetup();
+  newApp.id="app";
+  if(document.getElementById("app")){
+    document.body.replaceChild(newApp, document.getElementById("app"));
+  } else {
+    document.body.appendChild(newApp);
+  }
+}
+
+render();
+</script>
+</body>
+</html>
