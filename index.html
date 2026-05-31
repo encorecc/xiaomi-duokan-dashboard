@@ -156,14 +156,19 @@ html,body { width:100%; height:100%; overflow:hidden; background:#f5f2ec;
 
 <script>
 // ── API helpers ───────────────────────────────────────────
-const WEREAD_BASE = "https://ima-proxy.reverb-cheng.workers.dev/weread";
-async function wereadFetch(path, key) {
-  const r = await fetch(WEREAD_BASE + path, { headers:{ Authorization:"Bearer "+key } });
-  if (!r.ok) throw new Error(r.status);
+const WEREAD_GATEWAY = "https://ima-proxy.reverb-cheng.workers.dev/weread";
+const SKILL_VERSION = "1.0.3";
+async function wereadGateway(apiName, key, extra={}) {
+  const r = await fetch(WEREAD_GATEWAY, {
+    method:"POST",
+    headers:{ "Authorization":"Bearer "+key, "Content-Type":"application/json" },
+    body: JSON.stringify({ api_name:apiName, skill_version:SKILL_VERSION, ...extra })
+  });
+  if (!r.ok) throw new Error("HTTP "+r.status);
   return r.json();
 }
 async function fetchBookshelf(key) {
-  const d = await wereadFetch("/shelf/friendCommon", key);
+  const d = await wereadGateway("/shelf/sync", key, { synckey:0, lectureSynckey:0 });
   return (d.books||[]).map(b=>({
     id: b.bookId,
     title: b.book?.title||"未知",
@@ -174,12 +179,12 @@ async function fetchBookshelf(key) {
   }));
 }
 async function fetchStats(key) {
-  const d = await wereadFetch("/readdata/summary?synckey=0", key);
+  const d = await wereadGateway("/readdata/detail", key, { mode:"overall" });
   return { totalDays:d.totalReadDay||0, totalTime:d.totalReadTime||0,
            weekTime:d.totalReadTime7Days||0, totalBooks:d.totalBookCount||0 };
 }
 async function fetchHighlights(key) {
-  const d = await wereadFetch("/book/bookmarklist", key);
+  const d = await wereadGateway("/book/bookmarklist", key);
   return (d.updated||[]).filter(m=>m.type===1)
     .sort(()=>Math.random()-0.5).slice(0,8)
     .map(m=>({ text:m.markText, book:m.bookTitle||"" }));
