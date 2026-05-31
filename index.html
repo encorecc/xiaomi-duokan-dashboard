@@ -401,8 +401,7 @@ function renderSetup(){
     const back=el("button",{className:"setup-back",onClick:()=>setState({step:1})},"← 返回");
     content=el("div",{},
       el("div",{className:"setup-title"},"IMA 筆記連接"),
-      el("div",{className:"setup-desc"},"ima.qq.com/agent-interface 獲取 Client ID 和 API Key
-日記將直接存入 IMA 筆記"),
+      el("div",{className:"setup-desc"},"ima.qq.com/agent-interface 獲取 Client ID 和 API Key。日記將直接存入 IMA 筆記"),
       i1,i2,
       setupError?el("div",{style:{fontSize:"10px",color:"#c00",marginBottom:"8px"}},setupError):"",
       btn,back);
