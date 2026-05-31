@@ -156,7 +156,7 @@ html,body { width:100%; height:100%; overflow:hidden; background:#f5f2ec;
 
 <script>
 // ── API helpers ───────────────────────────────────────────
-const WEREAD_BASE = "https://weread.qq.com/api";
+const WEREAD_BASE = "https://ima-proxy.reverb-cheng.workers.dev/weread";
 async function wereadFetch(path, key) {
   const r = await fetch(WEREAD_BASE + path, { headers:{ Authorization:"Bearer "+key } });
   if (!r.ok) throw new Error(r.status);
@@ -215,7 +215,7 @@ async function pushToIma(cid, key, fid, label, text) {
   const md = "# 📖 每日一頁｜"+label+"\n\n"+text+"\n";
   const body = { content_format:1, content:md };
   if(fid) body.folder_id = fid;
-  await imaFetch("import_doc", cid, key, body);
+  return await imaFetch("import_doc", cid, key, body);
 }
 
 // ── Utils ─────────────────────────────────────────────────
@@ -511,8 +511,17 @@ function renderMain(){
     // Use a stable textarea that doesn't re-render on input (fixes mobile keyboard dismiss)
     const ta=el("textarea",{id:"diary-textarea",placeholder:"今天有什麼想記下來的…"});
     ta.value=diaryText;
+    if(imaSynced){
+      // After saving: show content as read-only
+      ta.readOnly=true;
+      ta.style.background="#f9f9f9";
+      ta.style.color="#555";
+      ta.style.border="1px solid #eee";
+      ta.style.cursor="default";
+    }
     // Only enforce max chars, never trigger setState on input
     ta.addEventListener("input",e=>{
+      if(imaSynced){ e.target.value=diaryText; return; }
       if(e.target.value.length>MAX_CHARS) e.target.value=e.target.value.slice(0,MAX_CHARS);
       // Update char count display directly in DOM
       const cnt=document.getElementById("diary-count");
@@ -534,8 +543,11 @@ function renderMain(){
         if(!val.trim()||imaSynced||imaSyncing||!config?.imaClientId) return;
         setState({imaSyncing:true,imaError:""});
         try{
-          await pushToIma(config.imaClientId,config.imaKey,config.imaFolderId,todayLabel(),val);
-          setState({imaSynced:true,imaSyncing:false});
+          const imaResult=await pushToIma(config.imaClientId,config.imaKey,config.imaFolderId,todayLabel(),val);
+          saveDiaryLocal(val);
+          S.diaryText=val;
+          console.log("IMA result:",JSON.stringify(imaResult));
+          setState({imaSynced:true,imaSyncing:false,imaError:"調試: "+JSON.stringify(imaResult).slice(0,100)});
         }catch{
           setState({imaError:"IMA 同步失敗，Key 可能已過期",imaSyncing:false});
         }
