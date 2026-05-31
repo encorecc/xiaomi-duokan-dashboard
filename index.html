@@ -187,14 +187,21 @@ async function fetchHighlights(key) {
 
 const IMA_BASE = "https://ima.qq.com/openapi/note/v1";
 async function imaFetch(ep, cid, key, body) {
-  const r = await fetch(IMA_BASE+"/"+ep, {
-    method:"POST",
-    headers:{ "Content-Type":"application/json",
-               Authorization:"Bearer "+key, "X-Client-ID":cid },
-    body: JSON.stringify(body)
-  });
-  if (!r.ok) throw new Error(r.status);
-  return r.json();
+  let r;
+  try {
+    r = await fetch(IMA_BASE+"/"+ep, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json",
+                 Authorization:"Bearer "+key, "X-Client-ID":cid },
+      body: JSON.stringify(body)
+    });
+  } catch(e) {
+    throw new Error("網絡錯誤: "+e.message);
+  }
+  const text = await r.text();
+  if (!r.ok) throw new Error("HTTP "+r.status+" — "+text.slice(0,300));
+  try { return JSON.parse(text); }
+  catch(e) { throw new Error("解析失敗: "+text.slice(0,300)); }
 }
 async function fetchFolders(cid, key) {
   const d = await imaFetch("list_note_folder_by_cursor", cid, key, { cursor:"0", limit:50 });
@@ -380,8 +387,8 @@ function renderSetup(){
       try{
         const list=await fetchFolders(imaCid.trim(),imaKey.trim());
         setState({folders:list,step:3,setupLoading:false});
-      }catch{
-        setState({setupError:"連接失敗，請確認 ID 和 Key",setupLoading:false});
+      }catch(e){
+        setState({setupError:"錯誤: "+e.message,setupLoading:false});
       }
     }},setupLoading?"連接中…":"連接 IMA →");
     const back=el("button",{className:"setup-back",onClick:()=>setState({step:1})},"← 返回");
