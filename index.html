@@ -213,7 +213,9 @@ async function fetchFolders(cid, key) {
 }
 async function pushToIma(cid, key, fid, label, text) {
   const md = "# 📖 每日一頁｜"+label+"\n\n"+text+"\n";
-  await imaFetch("import_doc", cid, key, { content_format:1, content:md, folder_id:fid });
+  const body = { content_format:1, content:md };
+  if(fid) body.folder_id = fid;
+  await imaFetch("import_doc", cid, key, body);
 }
 
 // ── Utils ─────────────────────────────────────────────────
@@ -353,7 +355,7 @@ function pbar(val,h=5){
 function renderSetup(){
   const {step,wrKey,imaCid,imaKey,folders,selFolder,setupLoading,setupError}=S;
 
-  const steps=["微信讀書","IMA","筆記本"];
+  const steps=["微信讀書","IMA 筆記"];
   const stepsEl=el("div",{id:"steps"});
   steps.forEach((lbl,i)=>{
     const n=i+1;
@@ -362,7 +364,7 @@ function renderSetup(){
     const col=el("div",{style:{textAlign:"center",flexShrink:"0"}}, dot,
       el("div",{className:"step-label "+(step===n?"active":"other")},lbl));
     stepsEl.appendChild(col);
-    if(i<2) stepsEl.appendChild(el("div",{className:"step-line "+(step>n?"done":"pending")}));
+    if(i<1) stepsEl.appendChild(el("div",{className:"step-line "+(step>n?"done":"pending")}));
   });
 
   let content;
@@ -375,7 +377,7 @@ function renderSetup(){
       el("div",{className:"setup-title"},"微信讀書 API Key"),
       el("div",{className:"setup-desc"},"微信讀書 App →「我」→「設置」→「Skill」→ 生成 API Key"),
       inp, btn);
-  } else if(step===2){
+  } else {
     const i1=el("input",{type:"text",className:"setup-input",placeholder:"Client ID",value:imaCid});
     const i2=el("input",{type:"password",className:"setup-input",placeholder:"API Key",value:imaKey});
     i1.addEventListener("input",e=>setState({imaCid:e.target.value}));
@@ -385,44 +387,25 @@ function renderSetup(){
       if(!ok) return;
       setState({setupLoading:true,setupError:""});
       try{
-        const list=await fetchFolders(imaCid.trim(),imaKey.trim());
-        setState({folders:list,step:3,setupLoading:false});
+        // Test connection by calling list_note_folder_by_cursor (even if empty, 200 = success)
+        await fetchFolders(imaCid.trim(),imaKey.trim());
+        const cfg={wereadKey:wrKey.trim(),imaClientId:imaCid.trim(),imaKey:imaKey.trim(),
+                   imaFolderId:"",imaFolderName:"IMA 筆記"};
+        saveConfig(cfg);
+        setState({config:cfg,setupLoading:false});
+        doFetchWeread(cfg);
       }catch(e){
         setState({setupError:"錯誤: "+e.message,setupLoading:false});
       }
-    }},setupLoading?"連接中…":"連接 IMA →");
+    }},setupLoading?"連接中…":"連接並開始使用 ✓");
     const back=el("button",{className:"setup-back",onClick:()=>setState({step:1})},"← 返回");
     content=el("div",{},
-      el("div",{className:"setup-title"},"IMA 笔记连接"),
-      el("div",{className:"setup-desc"},"ima.qq.com/agent-interface 獲取 Client ID 和 API Key"),
+      el("div",{className:"setup-title"},"IMA 筆記連接"),
+      el("div",{className:"setup-desc"},"ima.qq.com/agent-interface 獲取 Client ID 和 API Key
+日記將直接存入 IMA 筆記"),
       i1,i2,
       setupError?el("div",{style:{fontSize:"10px",color:"#c00",marginBottom:"8px"}},setupError):"",
       btn,back);
-  } else {
-    const list=el("div",{id:"folder-list"});
-    if(folders.length===0){
-      list.appendChild(el("div",{style:{padding:"16px",fontSize:"11px",color:"#aaa",textAlign:"center"}},"沒有找到筆記本"));
-    } else {
-      folders.forEach(f=>{
-        const item=el("div",{className:"folder-item"+(selFolder?.id===f.id?" selected":""),
-          onClick:()=>setState({selFolder:f})},
-          el("span",{},f.name),
-          el("span",{className:"folder-count"},f.count+" 篇"));
-        list.appendChild(item);
-      });
-    }
-    const btn=el("button",{className:"setup-btn "+(selFolder?"on":"off"),onClick:()=>{
-      if(!selFolder) return;
-      const cfg={wereadKey:wrKey.trim(),imaClientId:imaCid.trim(),imaKey:imaKey.trim(),
-                 imaFolderId:selFolder.id,imaFolderName:selFolder.name};
-      saveConfig(cfg);
-      setState({config:cfg});
-      doFetchWeread(cfg);
-    }},"開始使用 ✓");
-    content=el("div",{},
-      el("div",{className:"setup-title"},"選擇日記筆記本"),
-      el("div",{className:"setup-desc"},"日記每天自動存入這個筆記本"),
-      list,btn);
   }
 
   return el("div",{id:"setup"},
