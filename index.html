@@ -389,15 +389,16 @@ function renderSetup(){
     i1.value=imaCid; i2.value=imaKey;
     i1.addEventListener("change",e=>{ S.imaCid=e.target.value; });
     i2.addEventListener("change",e=>{ S.imaKey=e.target.value; });
-    const ok=S.imaCid.trim()&&S.imaKey.trim()&&!setupLoading;
-    const btn=el("button",{className:"setup-btn "+(ok?"on":"off"),onClick:async()=>{
-      if(!ok) return;
+    const btn=el("button",{className:"setup-btn on",onClick:async()=>{
+      const imaCidVal=i1.value.trim();
+      const imaKeyVal=i2.value.trim();
+      const wrKeyVal=inp ? inp.value.trim() : S.wrKey;
+      if(!imaCidVal||!imaKeyVal){ setState({setupError:"請填寫 Client ID 和 API Key"}); return; }
       setState({setupLoading:true,setupError:""});
       try{
-        // Test connection by calling list_note_folder_by_cursor (even if empty, 200 = success)
         const imaCidVal=i1.value.trim(); const imaKeyVal=i2.value.trim();
         await fetchFolders(imaCidVal,imaKeyVal);
-        const cfg={wereadKey:(document.querySelector('.setup-input[type=password]')||inp).value.trim()||S.wrKey.trim(),imaClientId:imaCidVal,imaKey:imaKeyVal,
+        const cfg={wereadKey:wrKeyVal,imaClientId:imaCidVal,imaKey:imaKeyVal,
                    imaFolderId:"",imaFolderName:"IMA 筆記"};
         saveConfig(cfg);
         setState({config:cfg,setupLoading:false});
