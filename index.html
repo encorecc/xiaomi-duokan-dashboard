@@ -396,7 +396,6 @@ function renderSetup(){
       if(!imaCidVal||!imaKeyVal){ setState({setupError:"請填寫 Client ID 和 API Key"}); return; }
       setState({setupLoading:true,setupError:""});
       try{
-        const imaCidVal=i1.value.trim(); const imaKeyVal=i2.value.trim();
         await fetchFolders(imaCidVal,imaKeyVal);
         const cfg={wereadKey:wrKeyVal,imaClientId:imaCidVal,imaKey:imaKeyVal,
                    imaFolderId:"",imaFolderName:"IMA 筆記"};
