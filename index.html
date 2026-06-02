@@ -393,6 +393,7 @@ function renderSetup(){
       const imaCidVal=i1.value.trim();
       const imaKeyVal=i2.value.trim();
       const wrKeyVal=inp ? inp.value.trim() : S.wrKey;
+      setState({setupError:"調試: cid="+imaCidVal.slice(0,8)+" key長度="+imaKeyVal.length});
       if(!imaCidVal||!imaKeyVal){ setState({setupError:"請填寫 Client ID 和 API Key"}); return; }
       setState({setupLoading:true,setupError:""});
       try{
