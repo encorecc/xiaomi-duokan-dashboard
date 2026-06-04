@@ -198,7 +198,7 @@ async function imaFetch(ep, cid, key, body) {
       method:"POST",
       headers:{ "Content-Type":"application/json",
                  Authorization:"Bearer "+key, "X-Client-ID":cid },
-      body: JSON.stringify(body)
+      body: JSON.stringify({ clientID: cid, apiKey: key, ...body })
     });
   } catch(e) {
     throw new Error("網絡錯誤: "+e.message);
