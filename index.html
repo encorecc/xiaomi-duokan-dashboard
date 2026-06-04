@@ -376,13 +376,14 @@ function renderSetup(){
   if(step===1){
     const inp = el("input",{type:"password",className:"setup-input",placeholder:"wrk-xxxxxxxxxxxxxxxx"});
     inp.value = S.wrKey||"";
-    const errDiv = el("div",{style:{fontSize:"10px",color:"#c00",marginBottom:"8px",display:"none"}});
+    inp.addEventListener("input", function(){ S.wrKey = inp.value; });
+    const errDiv = el("div",{style:{fontSize:"10px",color:"#c00",marginBottom:"8px",display:setupError?"block":"none"}}, setupError);
     const btn = el("button",{className:"setup-btn on"}, "下一步 →");
     btn.addEventListener("click", function(){
       const val = inp.value.trim();
-      if(!val){ errDiv.textContent="請輸入微信讀書 API Key"; errDiv.style.display="block"; return; }
+      if(!val){ setState({setupError:"請輸入微信讀書 API Key"}); return; }
       S.wrKey = val;
-      setState({step:2});
+      setState({step:2, setupError:""});
     });
     content2 = el("div",{},
       el("div",{className:"setup-title"},"微信讀書 API Key"),
@@ -394,20 +395,22 @@ function renderSetup(){
     const i2 = el("input",{type:"password",className:"setup-input",placeholder:"API Key"});
     i1.value = S.imaCid||"";
     i2.value = S.imaKey||"";
-    const errDiv = el("div",{style:{fontSize:"10px",color:"#c00",marginBottom:"8px",display:"none"}});
-    const btn = el("button",{className:"setup-btn on"}, setupLoading?"連接中…":"連接並開始使用 ✓");
+    i1.addEventListener("input", function(){ S.imaCid = i1.value; });
+    i2.addEventListener("input", function(){ S.imaKey = i2.value; });
+    const errDiv = el("div",{style:{fontSize:"10px",color:"#c00",marginBottom:"8px",display:setupError?"block":"none"}}, setupError);
+    const btn = el("button",{className:"setup-btn "+(setupLoading?"off":"on")}, setupLoading?"連接中…":"連接並開始使用 ✓");
+    if(setupLoading) btn.disabled = true;
     btn.addEventListener("click", async function(){
       const cidVal = i1.value.trim();
       const keyVal = i2.value.trim();
       const wrVal  = S.wrKey||"";
-      errDiv.style.display="none";
       if(!cidVal||!keyVal){
-        errDiv.textContent="請填寫 Client ID 和 API Key";
-        errDiv.style.display="block";
+        setState({setupError:"請填寫 Client ID 和 API Key"});
         return;
       }
-      btn.textContent="連接中…";
-      btn.style.opacity="0.6";
+      S.imaCid = cidVal;
+      S.imaKey = keyVal;
+      setState({setupLoading:true, setupError:""});
       try{
         await fetchFolders(cidVal, keyVal);
         const cfg={wereadKey:wrVal,imaClientId:cidVal,imaKey:keyVal,imaFolderId:"",imaFolderName:"IMA 筆記"};
@@ -416,14 +419,11 @@ function renderSetup(){
         doFetchWeread(cfg);
         render();
       }catch(e){
-        btn.textContent="連接並開始使用 ✓";
-        btn.style.opacity="1";
-        errDiv.textContent="錯誤: "+e.message;
-        errDiv.style.display="block";
+        setState({setupLoading:false, setupError:"錯誤: "+e.message});
       }
     });
     const back = el("button",{className:"setup-back"},"← 返回");
-    back.addEventListener("click",()=>setState({step:1}));
+    back.addEventListener("click",()=>setState({step:1, setupError:"", setupLoading:false}));
     content2 = el("div",{},
       el("div",{className:"setup-title"},"IMA 筆記連接"),
       el("div",{className:"setup-desc"},"ima.qq.com/agent-interface 獲取 Client ID 和 API Key"),
