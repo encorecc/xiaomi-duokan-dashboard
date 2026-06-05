@@ -164,8 +164,10 @@ async function wereadGateway(apiName, key, extra={}) {
     headers:{ "Authorization":"Bearer "+key, "Content-Type":"application/json" },
     body: JSON.stringify({ api_name:apiName, skill_version:SKILL_VERSION, _wrkey:key, ...extra })
   });
-  if (!r.ok) throw new Error("HTTP "+r.status);
-  return r.json();
+  const text = await r.text();
+  if (!r.ok) throw new Error("HTTP "+r.status+" — "+text.slice(0,300));
+  try { return JSON.parse(text); }
+  catch(e) { throw new Error("解析失敗: "+text.slice(0,300)); }
 }
 async function fetchBookshelf(key) {
   const d = await wereadGateway("/shelf/sync", key, { synckey:0, lectureSynckey:0 });
