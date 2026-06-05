@@ -567,8 +567,7 @@ function renderMain(){
           const imaResult=await pushToIma(config.imaClientId,config.imaKey,config.imaFolderId,todayLabel(),val);
           saveDiaryLocal(val);
           S.diaryText=val;
-          console.log("IMA result:",JSON.stringify(imaResult));
-          setState({imaSynced:true,imaSyncing:false,imaError:"調試: "+JSON.stringify(imaResult).slice(0,100)});
+          setState({imaSynced:true,imaSyncing:false,imaError:""});
         }catch{
           setState({imaError:"IMA 同步失敗，Key 可能已過期",imaSyncing:false});
         }
