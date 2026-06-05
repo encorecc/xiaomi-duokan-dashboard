@@ -719,7 +719,7 @@ function renderMain(){
       color:"#ccc",cursor:"pointer",fontFamily:"inherit"},
       onClick:()=>{ localStorage.removeItem("dashboard_config"); localStorage.removeItem("todos_list"); localStorage.removeItem(todayKey()); setState({config:null, diaryText:"", diarySaved:false, imaSynced:false, imaError:"", todos:DEFAULT_TODOS, todoEditId:null}); }},
       "重新設定"),
-    el("span",{},"書房 v0.4"));
+    el("span",{},"書房 v0.5"));
 
   return el("div",{id:"app"},topbar,
     el("div",{id:"main"},left,el("div",{id:"divider"}),right),
