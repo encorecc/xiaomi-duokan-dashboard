@@ -521,11 +521,9 @@ function renderMain(){
   else tabBooks[activeTab].forEach(book=>{
     const deepUrl=book.bookKey
       ?"https://weread.qq.com/web/reader/"+book.bookKey
-      :"https://weread.qq.com/book-detail?v=1&bookId="+book.id;
+      :"https://weread.qq.com/web/reader/"+book.id;
     const card=el("div",{className:"bookcard",onClick:()=>{
-      const a=document.createElement("a");
-      a.href=deepUrl; a.target="_blank"; a.rel="noopener";
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      window.location.href=deepUrl;
     }},
       el("div",{className:"bookcard-top"},
         el("span",{className:"bookcard-title"},book.title),
