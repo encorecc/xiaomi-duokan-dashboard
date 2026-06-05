@@ -717,7 +717,7 @@ function renderMain(){
     el("span",{},"在讀"+reading.length+" · 已讀"+done.length+" · 想讀"+want.length),
     el("button",{style:{fontSize:"8px",background:"transparent",border:"none",
       color:"#ccc",cursor:"pointer",fontFamily:"inherit"},
-      onClick:()=>{ localStorage.removeItem("dashboard_config"); localStorage.removeItem("todos_list"); setState({config:null, diaryText:"", diarySaved:false, imaSynced:false, imaError:"", todos:DEFAULT_TODOS, todoEditId:null}); }},
+      onClick:()=>{ localStorage.removeItem("dashboard_config"); localStorage.removeItem("todos_list"); localStorage.removeItem(todayKey()); setState({config:null, diaryText:"", diarySaved:false, imaSynced:false, imaError:"", todos:DEFAULT_TODOS, todoEditId:null}); }},
       "重新設定"),
     el("span",{},"書房 v0.4"));
 
