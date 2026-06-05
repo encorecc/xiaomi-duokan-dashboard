@@ -173,29 +173,34 @@ async function fetchBookshelf(key) {
   const d = await wereadGateway("/shelf/sync", key, { synckey:0, lectureSynckey:0 });
   return (d.books||[]).map(b=>({
     id: b.bookId,
-    title: b.book?.title||"未知",
-    author: b.book?.author||"",
-    status: b.finishedDate?"done": b.progress>0?"reading":"want",
-    progress: Math.round((b.progress||0)*100),
+    title: b.title||"未知",
+    author: b.author||"",
+    status: b.finishReading===1?"done": b.readUpdateTime>0?"reading":"want",
+    progress: 0,
     readingTime: b.readingTime||0,
   }));
 }
 async function fetchStats(key) {
-  const d = await wereadGateway("/readdata/detail", key, { mode:"overall" });
-  return { totalDays:d.totalReadDay||0, totalTime:d.totalReadTime||0,
-           weekTime:d.totalReadTime7Days||0, totalBooks:d.totalBookCount||0 };
+  const [overall, weekly] = await Promise.all([
+    wereadGateway("/readdata/detail", key, { mode:"overall" }),
+    wereadGateway("/readdata/detail", key, { mode:"weekly" }),
+  ]);
+  return { totalDays:overall.readDays||0, totalTime:overall.totalReadTime||0,
+           weekTime:weekly.totalReadTime||0, totalBooks:overall.totalBookCount||0 };
 }
 async function fetchHighlights(key) {
   const nb = await wereadGateway("/user/notebooks", key);
   const list = (nb.books||[]).filter(b=>(b.noteCount||0)+(b.bookmarkCount||0)>0);
-  if(!list.length) return [];
+  const total = list.reduce((s,b)=>s+(b.noteCount||0)+(b.bookmarkCount||0),0);
+  if(!list.length) return { items:[], total:0 };
   const entry = list[Math.floor(Math.random()*Math.min(list.length,5))];
   const bookId = entry.bookId || entry.book?.bookId;
-  if(!bookId) return [];
+  if(!bookId) return { items:[], total };
   const d = await wereadGateway("/book/bookmarklist", key, {bookId});
-  return (d.updated||[]).filter(m=>m.type===1)
+  const items = (d.updated||[]).filter(m=>m.type===1)
     .sort(()=>Math.random()-0.5).slice(0,8)
-    .map(m=>({ text:m.markText, book:m.bookTitle||entry.title||entry.book?.title||"" }));
+    .map(m=>({ text:m.markText, book:m.bookTitle||entry.title||"" }));
+  return { items, total };
 }
 
 const IMA_BASE = "https://ima-proxy.reverb-cheng.workers.dev";
@@ -253,7 +258,7 @@ function saveConfig(c){ localStorage.setItem("dashboard_config",JSON.stringify(c
 // ── State ─────────────────────────────────────────────────
 let S = {
   config: loadConfig(),
-  books:[], stats:null, highlights:[], hlIndex:0,
+  books:[], stats:null, highlights:[], highlightTotal:0, hlIndex:0,
   wereadLoading:false, wereadError:"",
   activeTab:"reading",
   diaryText: "", diarySaved:false, imaSynced:false, imaSyncing:false, imaError:"",
@@ -336,8 +341,8 @@ function saveDiaryLocal(text){
 function doFetchWeread(cfg){
   if(!cfg?.wereadKey) return;
   setState({ wereadLoading:true, wereadError:"" });
-  Promise.all([fetchBookshelf(cfg.wereadKey), fetchStats(cfg.wereadKey), fetchHighlights(cfg.wereadKey).catch(()=>[])])
-    .then(([books,stats,highlights])=>{ setState({ books,stats,highlights,wereadLoading:false }); })
+  Promise.all([fetchBookshelf(cfg.wereadKey), fetchStats(cfg.wereadKey), fetchHighlights(cfg.wereadKey).catch(()=>({items:[],total:0}))])
+    .then(([books,stats,hlResult])=>{ setState({ books,stats,highlights:hlResult.items,highlightTotal:hlResult.total,wereadLoading:false }); })
     .catch((e)=>{ setState({ wereadError:"微信讀書連接失敗，點擊重試 ("+e.message+")", wereadLoading:false }); });
 }
 if(S.config) doFetchWeread(S.config);
@@ -447,7 +452,7 @@ function renderSetup(){
 
 
 function renderMain(){
-  const {books,stats,highlights,hlIndex,wereadLoading,wereadError,
+  const {books,stats,highlights,highlightTotal,hlIndex,wereadLoading,wereadError,
          activeTab,diaryText,diarySaved,imaSynced,imaSyncing,imaError,
          showHistory,diaryHistory,isFullscreen,clockTime,clockDate,config,todos}=S;
 
@@ -627,7 +632,7 @@ function renderMain(){
   const statData=[
     {lbl:"閱讀時間",val:stats?fmtMin(Math.round((stats.weekTime||0)/60)):"—"},
     {lbl:"閱讀天數",val:stats?stats.totalDays+"天":"—"},
-    {lbl:"書摘條數",val:highlights.length>0?highlights.length+"條":"—"},
+    {lbl:"書摘條數",val:highlightTotal>0?highlightTotal+"條":"—"},
     {lbl:"完成書目",val:stats?stats.totalBooks+"本":done.length+"本"},
   ];
   const grid=el("div",{id:"statgrid"});
