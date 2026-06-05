@@ -186,10 +186,16 @@ async function fetchStats(key) {
            weekTime:d.totalReadTime7Days||0, totalBooks:d.totalBookCount||0 };
 }
 async function fetchHighlights(key) {
-  const d = await wereadGateway("/book/bookmarklist", key);
+  const nb = await wereadGateway("/user/notebooks", key);
+  const list = (nb.books||[]).filter(b=>(b.noteCount||0)+(b.bookmarkCount||0)>0);
+  if(!list.length) return [];
+  const entry = list[Math.floor(Math.random()*Math.min(list.length,5))];
+  const bookId = entry.bookId || entry.book?.bookId;
+  if(!bookId) return [];
+  const d = await wereadGateway("/book/bookmarklist", key, {bookId});
   return (d.updated||[]).filter(m=>m.type===1)
     .sort(()=>Math.random()-0.5).slice(0,8)
-    .map(m=>({ text:m.markText, book:m.bookTitle||"" }));
+    .map(m=>({ text:m.markText, book:m.bookTitle||entry.title||entry.book?.title||"" }));
 }
 
 const IMA_BASE = "https://ima-proxy.reverb-cheng.workers.dev";
@@ -330,7 +336,7 @@ function saveDiaryLocal(text){
 function doFetchWeread(cfg){
   if(!cfg?.wereadKey) return;
   setState({ wereadLoading:true, wereadError:"" });
-  Promise.all([fetchBookshelf(cfg.wereadKey), fetchStats(cfg.wereadKey), fetchHighlights(cfg.wereadKey)])
+  Promise.all([fetchBookshelf(cfg.wereadKey), fetchStats(cfg.wereadKey), fetchHighlights(cfg.wereadKey).catch(()=>[])])
     .then(([books,stats,highlights])=>{ setState({ books,stats,highlights,wereadLoading:false }); })
     .catch((e)=>{ setState({ wereadError:"微信讀書連接失敗，點擊重試 ("+e.message+")", wereadLoading:false }); });
 }
