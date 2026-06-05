@@ -334,11 +334,12 @@ setInterval(()=>{
 function loadDiaryLocal(){
   const key=todayKey();
   const text=localStorage.getItem(key)||"";
+  const imaDone=localStorage.getItem(key+"_ima")==="1";
   const idx=JSON.parse(localStorage.getItem("diary_index")||"[]");
   const hist=idx.filter(k=>k!==key).slice(0,7)
     .map(k=>({ key:k, text:localStorage.getItem(k)||"" }))
     .filter(e=>e.text);
-  setState({ diaryText:text, diarySaved:!!text, diaryHistory:hist });
+  setState({ diaryText:imaDone?"":text, diarySaved:!!text, imaSynced:imaDone, diaryHistory:hist });
 }
 loadDiaryLocal();
 
@@ -600,8 +601,8 @@ function renderMain(){
         try{
           const imaResult=await pushToIma(config.imaClientId,config.imaKey,config.imaFolderId,todayLabel(),val);
           saveDiaryLocal(val);
-          S.diaryText=val;
-          setState({imaSynced:true,imaSyncing:false,imaError:""});
+          localStorage.setItem(todayKey()+"_ima","1");
+          setState({imaSynced:true,imaSyncing:false,imaError:"",diaryText:""});
         }catch{
           setState({imaError:"IMA 同步失敗，Key 可能已過期",imaSyncing:false});
         }
@@ -616,7 +617,7 @@ function renderMain(){
       el("div",{id:"diary-target"},"→ "+(config?.imaFolderName||"")));
   }
 
-  const cntEl=el("span",{id:"diary-count"+(diaryText.length>MAX_CHARS*0.9?" warn":"")},
+  const cntEl=imaSynced?el("span",{},""):el("span",{id:"diary-count"+(diaryText.length>MAX_CHARS*0.9?" warn":"")},
     diaryText.length+"/"+MAX_CHARS);
   const diarySec=el("div",{style:{flexShrink:"0"}},
     el("div",{id:"diary-header"},
@@ -720,7 +721,7 @@ function renderMain(){
     el("span",{},"在讀"+reading.length+" · 已讀"+done.length+" · 想讀"+want.length),
     el("button",{style:{fontSize:"8px",background:"transparent",border:"none",
       color:"#ccc",cursor:"pointer",fontFamily:"inherit"},
-      onClick:()=>{ localStorage.removeItem("dashboard_config"); localStorage.removeItem("todos_list"); localStorage.removeItem(todayKey()); setState({config:null, diaryText:"", diarySaved:false, imaSynced:false, imaError:"", todos:DEFAULT_TODOS, todoEditId:null}); }},
+      onClick:()=>{ localStorage.removeItem("dashboard_config"); localStorage.removeItem("todos_list"); localStorage.removeItem(todayKey()); localStorage.removeItem(todayKey()+"_ima"); setState({config:null, diaryText:"", diarySaved:false, imaSynced:false, imaError:"", todos:DEFAULT_TODOS, todoEditId:null}); }},
       "重新設定"),
     el("span",{},"書房 v0.5"));
 
