@@ -211,7 +211,7 @@ async function fetchHighlights(key) {
   const d = await wereadGateway("/book/bookmarklist", key, {bookId});
   const items = (d.updated||[]).filter(m=>m.type===1)
     .sort(()=>Math.random()-0.5).slice(0,8)
-    .map(m=>({ text:m.markText, book:m.bookTitle||entry.title||"" }));
+    .map(m=>({ text:m.markText, book:m.bookTitle||entry.title||entry.book?.title||"" }));
   return { items, total };
 }
 
@@ -519,7 +519,9 @@ function renderMain(){
   else if(!tabBooks[activeTab].length){ bl.appendChild(el("div",{className:"empty"},"暫無書目")); }
   else tabBooks[activeTab].forEach(book=>{
     const card=el("div",{className:"bookcard",onClick:()=>{
-      window.location.href="weread://book/bookdetail?bookId="+book.id;
+      const a=document.createElement("a");
+      a.href="weread://book/reader?bookId="+book.id;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }},
       el("div",{className:"bookcard-top"},
         el("span",{className:"bookcard-title"},book.title),
