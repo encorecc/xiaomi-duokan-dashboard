@@ -183,10 +183,10 @@ async function fetchBookshelf(key) {
   const d = await wereadGateway("/shelf/sync", key, { synckey:0, lectureSynckey:0 });
   return (d.books||[]).map(b=>({
     id: b.bookId,
+    bookKey: b.bookKey||b.alias||b.book?.alias||"",
     title: b.title||"未知",
     author: b.author||"",
     status: b.finishReading===1?"done": b.readUpdateTime>0?"reading":"want",
-    progress: 0,
     readingTime: b.readingTime||0,
     readUpdateTime: b.readUpdateTime||0,
   }));
@@ -518,10 +518,12 @@ function renderMain(){
   if(wereadLoading){ bl.appendChild(el("div",{className:"empty"},"載入中…")); }
   else if(!tabBooks[activeTab].length){ bl.appendChild(el("div",{className:"empty"},"暫無書目")); }
   else tabBooks[activeTab].forEach(book=>{
+    const deepUrl=book.bookKey
+      ?"https://weread.qq.com/web/reader/"+book.bookKey
+      :"https://weread.qq.com/book-detail?v=1&bookId="+book.id;
     const card=el("div",{className:"bookcard",onClick:()=>{
       const a=document.createElement("a");
-      a.href="https://weread.qq.com/book-detail?v=1&bookId="+book.id;
-      a.target="_blank"; a.rel="noopener";
+      a.href=deepUrl; a.target="_blank"; a.rel="noopener";
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }},
       el("div",{className:"bookcard-top"},
@@ -534,9 +536,9 @@ function renderMain(){
     if(book.status==="reading"){
       const pg=el("div",{className:"bookcard-progress"},
         el("div",{className:"bookcard-pct"},
-          el("span",{},"已讀 "+book.progress+"%"),
-          book.readingTime>0?el("span",{},fmtMin(Math.round(book.readingTime/60))):""),
-        pbar(book.progress));
+          book.readingTime>0
+            ?el("span",{},"已讀 "+fmtMin(Math.round(book.readingTime/60)))
+            :el("span",{style:{color:"#bbb"}},"尚未開始")));
       card.appendChild(pg);
     }
     bl.appendChild(card);
