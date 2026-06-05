@@ -520,7 +520,8 @@ function renderMain(){
   else tabBooks[activeTab].forEach(book=>{
     const card=el("div",{className:"bookcard",onClick:()=>{
       const a=document.createElement("a");
-      a.href="weread://book/reader?bookId="+book.id;
+      a.href="https://weread.qq.com/book-detail?v=1&bookId="+book.id;
+      a.target="_blank"; a.rel="noopener";
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }},
       el("div",{className:"bookcard-top"},
