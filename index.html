@@ -162,7 +162,7 @@ async function wereadGateway(apiName, key, extra={}) {
   const r = await fetch(WEREAD_GATEWAY, {
     method:"POST",
     headers:{ "Authorization":"Bearer "+key, "Content-Type":"application/json" },
-    body: JSON.stringify({ api_name:apiName, skill_version:SKILL_VERSION, ...extra })
+    body: JSON.stringify({ api_name:apiName, skill_version:SKILL_VERSION, _wrkey:key, ...extra })
   });
   if (!r.ok) throw new Error("HTTP "+r.status);
   return r.json();
@@ -330,7 +330,7 @@ function doFetchWeread(cfg){
   setState({ wereadLoading:true, wereadError:"" });
   Promise.all([fetchBookshelf(cfg.wereadKey), fetchStats(cfg.wereadKey), fetchHighlights(cfg.wereadKey)])
     .then(([books,stats,highlights])=>{ setState({ books,stats,highlights,wereadLoading:false }); })
-    .catch(()=>{ setState({ wereadError:"微信讀書連接失敗，點擊重試", wereadLoading:false }); });
+    .catch((e)=>{ setState({ wereadError:"微信讀書連接失敗，點擊重試 ("+e.message+")", wereadLoading:false }); });
 }
 if(S.config) doFetchWeread(S.config);
 setInterval(()=>{ if(S.config) doFetchWeread(S.config); },60*60*1000);
@@ -567,8 +567,7 @@ function renderMain(){
           const imaResult=await pushToIma(config.imaClientId,config.imaKey,config.imaFolderId,todayLabel(),val);
           saveDiaryLocal(val);
           S.diaryText=val;
-          console.log("IMA result:",JSON.stringify(imaResult));
-          setState({imaSynced:true,imaSyncing:false,imaError:"調試: "+JSON.stringify(imaResult).slice(0,100)});
+          setState({imaSynced:true,imaSyncing:false,imaError:""});
         }catch{
           setState({imaError:"IMA 同步失敗，Key 可能已過期",imaSyncing:false});
         }
