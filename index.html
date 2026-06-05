@@ -81,10 +81,20 @@ html,body { width:100%; height:100%; overflow:hidden; background:#f5f2ec;
 /* Todos */
 #todolist { flex:1; }
 .todo { display:flex; align-items:center; gap:8px; padding:6px 0;
-  border-bottom:1px dashed #e8e8e8; cursor:pointer; }
-.todo-check { font-size:13px; font-family:monospace; flex-shrink:0; }
-.todo-text  { font-size:12px; line-height:1.5; }
+  border-bottom:1px dashed #e8e8e8; }
+.todo-check { font-size:13px; font-family:monospace; flex-shrink:0; cursor:pointer; }
+.todo-text  { font-size:12px; line-height:1.5; flex:1; cursor:pointer; }
 .todo-text.done { color:#ccc; text-decoration:line-through; }
+.todo-edit-input { flex:1; background:transparent; border:none;
+  border-bottom:1px solid #aaa; color:inherit; font-size:12px;
+  font-family:inherit; outline:none; padding:1px 2px; }
+.todo-del { margin-left:auto; color:#ccc; cursor:pointer; font-size:13px;
+  flex-shrink:0; padding:0 3px; line-height:1; }
+.todo-del:hover { color:#e05555; }
+.todo-add { background:transparent; border:none; color:#bbb; font-size:11px;
+  cursor:pointer; padding:7px 0 2px; font-family:inherit; display:block;
+  width:100%; text-align:left; }
+.todo-add:hover { color:#888; }
 
 /* Year goal */
 #goalrow { display:flex; justify-content:space-between; margin-bottom:5px; }
@@ -254,6 +264,9 @@ function pad(n){ return String(n).padStart(2,"0"); }
 function fmtMin(m){ const h=Math.floor(m/60),mm=m%60; return h>0?h+"h"+(mm>0?mm+"m":""):mm+"m"; }
 function loadConfig(){ try{ return JSON.parse(localStorage.getItem("dashboard_config")||"null"); }catch{ return null; } }
 function saveConfig(c){ localStorage.setItem("dashboard_config",JSON.stringify(c)); }
+const DEFAULT_TODOS=[{id:0,text:"今日閱讀 30 分鐘"},{id:1,text:"整理本週書摘"},{id:2,text:"喝夠八杯水"}];
+function loadTodos(){ try{ const s=localStorage.getItem("todos_list"); return s?JSON.parse(s):DEFAULT_TODOS; }catch{ return DEFAULT_TODOS; } }
+function saveTodos(t){ localStorage.setItem("todos_list",JSON.stringify(t)); }
 
 // ── State ─────────────────────────────────────────────────
 let S = {
@@ -268,11 +281,8 @@ let S = {
   step:1, wrKey:"", imaCid:"", imaKey:"", folders:[], selFolder:null,
   setupLoading:false, setupError:"",
   // todos
-  todos:[
-    {id:0,text:"今日閱讀 30 分鐘"},
-    {id:1,text:"整理本週書摘"},
-    {id:2,text:"喝夠八杯水"},
-  ],
+  todos: loadTodos(),
+  todoEditId: null,
 };
 const MAX_CHARS=500;
 const YEAR_GOAL=12;
@@ -454,7 +464,7 @@ function renderSetup(){
 function renderMain(){
   const {books,stats,highlights,highlightTotal,hlIndex,wereadLoading,wereadError,
          activeTab,diaryText,diarySaved,imaSynced,imaSyncing,imaError,
-         showHistory,diaryHistory,isFullscreen,clockTime,clockDate,config,todos}=S;
+         showHistory,diaryHistory,isFullscreen,clockTime,clockDate,config,todos,todoEditId}=S;
 
   const reading=books.filter(b=>b.status==="reading");
   const want=books.filter(b=>b.status==="want");
@@ -644,24 +654,54 @@ function renderMain(){
   const statSec=el("div",{},el("div",{className:"section-label",style:{marginBottom:"8px"}},"本週統計"),grid);
 
   // Todos
-  const ITEMS=["今日閱讀 30 分鐘","整理本週書摘","喝夠八杯水"];
   const todoList=el("div",{id:"todolist"});
-  ITEMS.forEach((txt,i)=>{
-    const key="todo_"+todayKey()+"_"+i;
-    let checked=localStorage.getItem(key)==="1";
-    const check=el("span",{className:"todo-check"},checked?"☑":"□");
-    const label=el("span",{className:"todo-text"+(checked?" done":"")},txt);
-    const row=el("div",{className:"todo",onClick:()=>{
+  todos.forEach(todo=>{
+    const ck="todo_"+todayKey()+"_"+todo.id;
+    let checked=localStorage.getItem(ck)==="1";
+    const check=el("span",{className:"todo-check",onClick:e=>{
+      e.stopPropagation();
+      if(todoEditId===todo.id) return;
       checked=!checked;
-      localStorage.setItem(key,checked?"1":"0");
+      localStorage.setItem(ck,checked?"1":"0");
       check.textContent=checked?"☑":"□";
       label.className="todo-text"+(checked?" done":"");
-    }},check,label);
-    todoList.appendChild(row);
+    }},checked?"☑":"□");
+    const del=el("span",{className:"todo-del",onClick:e=>{
+      e.stopPropagation();
+      const next=todos.filter(t=>t.id!==todo.id);
+      saveTodos(next);
+      setState({todos:next,todoEditId:null});
+    }},"×");
+    let label;
+    if(todoEditId===todo.id){
+      label=el("input",{className:"todo-edit-input",type:"text",value:todo.text});
+      label.addEventListener("keydown",e=>{
+        if(e.key==="Enter") label.blur();
+        if(e.key==="Escape") setState({todoEditId:null});
+      });
+      label.addEventListener("blur",()=>{
+        const txt=label.value.trim();
+        const next=txt?todos.map(t=>t.id===todo.id?{...t,text:txt}:t)
+                       :todos.filter(t=>t.id!==todo.id);
+        saveTodos(next);
+        setState({todos:next,todoEditId:null});
+      });
+      requestAnimationFrame(()=>{ label.focus(); label.select(); });
+    } else {
+      label=el("span",{className:"todo-text"+(checked?" done":""),
+        onClick:()=>setState({todoEditId:todo.id})},todo.text);
+    }
+    todoList.appendChild(el("div",{className:"todo"},check,label,del));
   });
+  const addBtn=el("button",{className:"todo-add",onClick:()=>{
+    const newId=todos.reduce((m,t)=>Math.max(m,t.id),-1)+1;
+    const next=[...todos,{id:newId,text:""}];
+    saveTodos(next);
+    setState({todos:next,todoEditId:newId});
+  }},"＋ 新增計劃");
   const todoSec=el("div",{style:{flex:"1"}},
     el("div",{className:"section-label",style:{marginBottom:"7px"}},"今日計劃"),
-    todoList);
+    todoList,addBtn);
 
   const right=el("div",{id:"right"},hlbox,el("div",{className:"divider-line"}),
     statSec,el("div",{className:"divider-line"}),todoSec);
