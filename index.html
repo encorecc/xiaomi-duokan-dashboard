@@ -188,6 +188,7 @@ async function fetchBookshelf(key) {
     status: b.finishReading===1?"done": b.readUpdateTime>0?"reading":"want",
     progress: 0,
     readingTime: b.readingTime||0,
+    readUpdateTime: b.readUpdateTime||0,
   }));
 }
 async function fetchStats(key) {
@@ -195,7 +196,8 @@ async function fetchStats(key) {
     wereadGateway("/readdata/detail", key, { mode:"overall" }),
     wereadGateway("/readdata/detail", key, { mode:"weekly" }),
   ]);
-  return { totalDays:overall.readDays||0, totalTime:overall.totalReadTime||0,
+  return { totalDays:overall.readDays||0, weekDays:weekly.readDays||0,
+           totalTime:overall.totalReadTime||0,
            weekTime:weekly.totalReadTime||0, totalBooks:overall.totalBookCount||0 };
 }
 async function fetchHighlights(key) {
@@ -466,9 +468,10 @@ function renderMain(){
          activeTab,diaryText,diarySaved,imaSynced,imaSyncing,imaError,
          showHistory,diaryHistory,isFullscreen,clockTime,clockDate,config,todos,todoEditId}=S;
 
-  const reading=books.filter(b=>b.status==="reading");
-  const want=books.filter(b=>b.status==="want");
-  const done=books.filter(b=>b.status==="done");
+  const byRecent=(a,b)=>(b.readUpdateTime||0)-(a.readUpdateTime||0);
+  const reading=books.filter(b=>b.status==="reading").sort(byRecent);
+  const want=books.filter(b=>b.status==="want").sort(byRecent);
+  const done=books.filter(b=>b.status==="done").sort(byRecent);
   const tabBooks={reading,want,done};
   const goalPct=Math.round(((stats?.totalBooks||done.length)/YEAR_GOAL)*100);
   const hl=highlights[hlIndex]||null;
@@ -513,7 +516,7 @@ function renderMain(){
   else if(!tabBooks[activeTab].length){ bl.appendChild(el("div",{className:"empty"},"暫無書目")); }
   else tabBooks[activeTab].forEach(book=>{
     const card=el("div",{className:"bookcard",onClick:()=>{
-      window.location.href="weread://reading?bookId="+book.id;
+      window.location.href="weread://book/bookdetail?bookId="+book.id;
     }},
       el("div",{className:"bookcard-top"},
         el("span",{className:"bookcard-title"},book.title),
@@ -641,9 +644,7 @@ function renderMain(){
   // Stats
   const statData=[
     {lbl:"閱讀時間",val:stats?fmtMin(Math.round((stats.weekTime||0)/60)):"—"},
-    {lbl:"閱讀天數",val:stats?stats.totalDays+"天":"—"},
-    {lbl:"書摘條數",val:highlightTotal>0?highlightTotal+"條":"—"},
-    {lbl:"完成書目",val:stats?stats.totalBooks+"本":done.length+"本"},
+    {lbl:"閱讀天數",val:stats?(stats.weekDays||0)+"天":"—"},
   ];
   const grid=el("div",{id:"statgrid"});
   statData.forEach(s=>{
