@@ -634,7 +634,7 @@ function renderMain(){
   else if(hl){
     const foot=el("div",{id:"hlfoot"},
       el("span",{id:"hlbook"},"——《"+hl.book+"》"));
-    if(highlights.length>1){
+    if(highlightTotal>1){
       foot.appendChild(el("button",{id:"btn-nexthl",
         onClick:()=>setState({hlIndex:(hlIndex+1)%highlights.length})},"換一條"));
     }
@@ -717,7 +717,7 @@ function renderMain(){
     el("span",{},"在讀"+reading.length+" · 已讀"+done.length+" · 想讀"+want.length),
     el("button",{style:{fontSize:"8px",background:"transparent",border:"none",
       color:"#ccc",cursor:"pointer",fontFamily:"inherit"},
-      onClick:()=>{ localStorage.removeItem("dashboard_config"); setState({config:null, diaryText:"", diarySaved:false, imaSynced:false, imaError:""}); }},
+      onClick:()=>{ localStorage.removeItem("dashboard_config"); localStorage.removeItem("todos_list"); setState({config:null, diaryText:"", diarySaved:false, imaSynced:false, imaError:"", todos:DEFAULT_TODOS, todoEditId:null}); }},
       "重新設定"),
     el("span",{},"書房 v0.4"));
 
