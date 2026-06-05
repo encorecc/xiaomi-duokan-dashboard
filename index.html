@@ -520,7 +520,8 @@ function renderMain(){
   else tabBooks[activeTab].forEach(book=>{
     const card=el("div",{className:"bookcard",onClick:()=>{
       const a=document.createElement("a");
-      a.href="weread://book/reader?bookId="+book.id;
+      a.href="https://weread.qq.com/book-detail?v=1&bookId="+book.id;
+      a.target="_blank"; a.rel="noopener";
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }},
       el("div",{className:"bookcard-top"},
@@ -717,9 +718,9 @@ function renderMain(){
     el("span",{},"在讀"+reading.length+" · 已讀"+done.length+" · 想讀"+want.length),
     el("button",{style:{fontSize:"8px",background:"transparent",border:"none",
       color:"#ccc",cursor:"pointer",fontFamily:"inherit"},
-      onClick:()=>{ localStorage.removeItem("dashboard_config"); localStorage.removeItem("todos_list"); setState({config:null, diaryText:"", diarySaved:false, imaSynced:false, imaError:"", todos:DEFAULT_TODOS, todoEditId:null}); }},
+      onClick:()=>{ localStorage.removeItem("dashboard_config"); localStorage.removeItem("todos_list"); localStorage.removeItem(todayKey()); setState({config:null, diaryText:"", diarySaved:false, imaSynced:false, imaError:"", todos:DEFAULT_TODOS, todoEditId:null}); }},
       "重新設定"),
-    el("span",{},"書房 v0.4"));
+    el("span",{},"書房 v0.5"));
 
   return el("div",{id:"app"},topbar,
     el("div",{id:"main"},left,el("div",{id:"divider"}),right),
