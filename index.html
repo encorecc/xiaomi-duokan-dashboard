@@ -78,9 +78,10 @@ html,body { width:100%; height:100%; overflow:hidden; background:#f5f2ec;
 
 /* Stats grid */
 #statgrid { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
-.statbox { border:1px solid #e8e8e8; padding:7px 9px; background:#fff; }
-.statbox .lbl { font-size:8px; color:#bbb; letter-spacing:1px; margin-bottom:3px; }
-.statbox .val { font-size:17px; font-weight:700; font-family:'Courier New',monospace; }
+.statbox { border:1px solid #e8e8e8; padding:7px 9px; background:#fff;
+  display:flex; flex-direction:column; justify-content:flex-start; }
+.statbox .lbl { font-size:8px; color:#bbb; letter-spacing:1px; margin-bottom:3px; line-height:1.4; }
+.statbox .val { font-size:17px; font-weight:700; font-family:'Courier New',monospace; line-height:1; }
 
 /* Todos */
 #todolist { flex:1; }
