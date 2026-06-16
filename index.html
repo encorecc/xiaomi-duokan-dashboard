@@ -205,6 +205,10 @@ async function fetchStats(key) {
            totalTime:overall.totalReadTime||0,
            weekTime:weekly.totalReadTime||0, totalBooks:overall.totalBookCount||0 };
 }
+async function fetchBookInfo(key, bookId) {
+  const d = await wereadGateway("/book/info", key, {bookId});
+  return d.alias||d.bookKey||d.book?.alias||d.book?.bookKey||"";
+}
 async function fetchHighlights(key) {
   const nb = await wereadGateway("/user/notebooks", key);
   const list = (nb.books||[]).filter(b=>(b.noteCount||0)+(b.bookmarkCount||0)>0);
@@ -401,10 +405,17 @@ function doFetchWeread(cfg){
   if(!cfg?.wereadKey) return;
   setState({ wereadLoading:true, wereadError:"" });
   Promise.all([fetchBookshelf(cfg.wereadKey), fetchStats(cfg.wereadKey), fetchHighlights(cfg.wereadKey).catch(()=>({items:[],total:0,bookKeyMap:{}}))])
-    .then(([books,stats,hlResult])=>{
-      // Enrich books with bookKeys from notebooks API where shelf API didn't return one
+    .then(async ([books,stats,hlResult])=>{
       const km=hlResult.bookKeyMap||{};
-      const enriched=books.map(b=>b.bookKey?b:{...b,bookKey:km[String(b.id)]||""});
+      let enriched=books.map(b=>b.bookKey?b:{...b,bookKey:km[String(b.id)]||""});
+      // For reading books still missing bookKey, fetch from /book/info
+      const missing=enriched.filter(b=>b.status==="reading"&&!b.bookKey).slice(0,7);
+      if(missing.length){
+        const results=await Promise.allSettled(missing.map(b=>fetchBookInfo(cfg.wereadKey,b.id)));
+        const infoMap={};
+        missing.forEach((b,i)=>{ if(results[i].status==="fulfilled"&&results[i].value) infoMap[b.id]=results[i].value; });
+        enriched=enriched.map(b=>b.bookKey?b:{...b,bookKey:infoMap[b.id]||""});
+      }
       setState({ books:enriched,stats,highlights:hlResult.items,highlightTotal:hlResult.total,wereadLoading:false });
     })
     .catch((e)=>{ setState({ wereadError:"微信讀書連接失敗，點擊重試 ("+e.message+")", wereadLoading:false }); });
@@ -568,8 +579,8 @@ function renderMain(){
   else if(!recentBooks.length){ bl.appendChild(el("div",{className:"empty"},"暫無在讀書目")); }
   else recentBooks.forEach(book=>{
     const deepUrl=book.bookKey
-      ?"https://weread.qq.com/web/reader/"+book.bookKey
-      :"https://weread.qq.com/web/reader/"+book.id;
+      ?"https://weread.qq.com/book-detail?type=1&v="+book.bookKey
+      :"https://weread.qq.com/";
     const card=el("div",{className:"bookcard",onClick:()=>{
       window.location.href=deepUrl;
     }},
