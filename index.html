@@ -579,7 +579,7 @@ function renderMain(){
   else if(!recentBooks.length){ bl.appendChild(el("div",{className:"empty"},"暫無在讀書目")); }
   else recentBooks.forEach(book=>{
     const deepUrl=book.bookKey
-      ?"https://weread.qq.com/book-detail?type=1&v="+book.bookKey
+      ?"https://weread.qq.com/web/reader/"+book.bookKey
       :"https://weread.qq.com/";
     const card=el("div",{className:"bookcard",onClick:()=>{
       window.location.href=deepUrl;
