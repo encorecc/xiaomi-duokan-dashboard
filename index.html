@@ -412,9 +412,13 @@ function doFetchWeread(cfg){
       const missing=enriched.filter(b=>b.status==="reading"&&!b.bookKey).slice(0,7);
       if(missing.length){
         const results=await Promise.allSettled(missing.map(b=>fetchBookInfo(cfg.wereadKey,b.id)));
-        const infoMap={};
-        missing.forEach((b,i)=>{ if(results[i].status==="fulfilled"&&results[i].value) infoMap[b.id]=results[i].value; });
-        enriched=enriched.map(b=>b.bookKey?b:{...b,bookKey:infoMap[b.id]||""});
+        const infoMap={}, errMap={};
+        missing.forEach((b,i)=>{
+          const r=results[i];
+          if(r.status==="fulfilled"&&r.value) infoMap[b.id]=r.value;
+          else errMap[b.id]=r.status==="rejected"?r.reason.message:"無結果";
+        });
+        enriched=enriched.map(b=>b.bookKey?b:{...b,bookKey:infoMap[b.id]||"",bookKeyError:errMap[b.id]||""});
       }
       setState({ books:enriched,stats,highlights:hlResult.items,highlightTotal:hlResult.total,wereadLoading:false });
     })
@@ -580,7 +584,7 @@ function renderMain(){
   else recentBooks.forEach(book=>{
     const deepUrl=book.bookKey
       ?"https://weread.qq.com/web/reader/"+book.bookKey
-      :"https://weread.qq.com/";
+      :"https://weread.qq.com/web/reader/"+book.id;
     const card=el("div",{className:"bookcard",onClick:()=>{
       window.location.href=deepUrl;
     }},
@@ -594,6 +598,10 @@ function renderMain(){
       card.appendChild(el("div",{className:"bookcard-progress"},
         el("div",{className:"bookcard-pct"},
           el("span",{},"已讀 "+fmtMin(Math.round(book.readingTime/60))))));
+    }
+    if(!book.bookKey){
+      card.appendChild(el("div",{style:{fontSize:"8px",color:"#ccc",marginTop:"2px"}},
+        "debug: 無bookKey"+(book.bookKeyError?" — "+book.bookKeyError:"")));
     }
     bl.appendChild(card);
   });
