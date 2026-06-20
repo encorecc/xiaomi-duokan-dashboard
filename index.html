@@ -408,15 +408,17 @@ function doFetchWeread(cfg){
     .then(async ([books,stats,hlResult])=>{
       const km=hlResult.bookKeyMap||{};
       let enriched=books.map(b=>b.bookKey?b:{...b,bookKey:km[String(b.id)]||""});
-      // For reading books still missing bookKey, fetch from /book/info
-      const missing=enriched.filter(b=>b.status==="reading"&&!b.bookKey).slice(0,7);
+      // For reading books still missing bookKey, fetch from /book/info.
+      // Must match the same recency-sorted top-7 the UI actually displays.
+      const byRecent=(a,b)=>(b.readUpdateTime||0)-(a.readUpdateTime||0);
+      const missing=enriched.filter(b=>b.status==="reading"&&!b.bookKey).sort(byRecent).slice(0,7);
       if(missing.length){
         const results=await Promise.allSettled(missing.map(b=>fetchBookInfo(cfg.wereadKey,b.id)));
         const infoMap={}, errMap={};
         missing.forEach((b,i)=>{
           const r=results[i];
           if(r.status==="fulfilled"&&r.value) infoMap[b.id]=r.value;
-          else errMap[b.id]=r.status==="rejected"?r.reason.message:"無結果";
+          else errMap[b.id]=r.status==="rejected"?(r.reason?.message||String(r.reason)):"無結果";
         });
         enriched=enriched.map(b=>b.bookKey?b:{...b,bookKey:infoMap[b.id]||"",bookKeyError:errMap[b.id]||""});
       }
