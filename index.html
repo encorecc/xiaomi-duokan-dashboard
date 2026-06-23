@@ -207,7 +207,9 @@ async function fetchStats(key) {
 }
 async function fetchBookInfo(key, bookId) {
   const d = await wereadGateway("/book/info", key, {bookId});
-  return d.alias||d.bookKey||d.book?.alias||d.book?.bookKey||"";
+  const val = d.alias||d.bookKey||d.book?.alias||d.book?.bookKey||"";
+  if(!val) throw new Error("無對應欄位 — keys: "+Object.keys(d||{}).join(",")+(d.book?(" / book: "+Object.keys(d.book).join(",")):""));
+  return val;
 }
 async function fetchHighlights(key) {
   const nb = await wereadGateway("/user/notebooks", key);
