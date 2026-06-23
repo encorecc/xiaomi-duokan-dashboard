@@ -205,12 +205,6 @@ async function fetchStats(key) {
            totalTime:overall.totalReadTime||0,
            weekTime:weekly.totalReadTime||0, totalBooks:overall.totalBookCount||0 };
 }
-async function fetchBookInfo(key, bookId) {
-  const d = await wereadGateway("/book/info", key, {bookId});
-  const val = d.alias||d.bookKey||d.book?.alias||d.book?.bookKey||"";
-  if(!val) throw new Error("無對應欄位 — keys: "+Object.keys(d||{}).join(",")+(d.book?(" / book: "+Object.keys(d.book).join(",")):""));
-  return val;
-}
 async function fetchHighlights(key) {
   const nb = await wereadGateway("/user/notebooks", key);
   const list = (nb.books||[]).filter(b=>(b.noteCount||0)+(b.bookmarkCount||0)>0);
@@ -407,23 +401,9 @@ function doFetchWeread(cfg){
   if(!cfg?.wereadKey) return;
   setState({ wereadLoading:true, wereadError:"" });
   Promise.all([fetchBookshelf(cfg.wereadKey), fetchStats(cfg.wereadKey), fetchHighlights(cfg.wereadKey).catch(()=>({items:[],total:0,bookKeyMap:{}}))])
-    .then(async ([books,stats,hlResult])=>{
+    .then(([books,stats,hlResult])=>{
       const km=hlResult.bookKeyMap||{};
-      let enriched=books.map(b=>b.bookKey?b:{...b,bookKey:km[String(b.id)]||""});
-      // For reading books still missing bookKey, fetch from /book/info.
-      // Must match the same recency-sorted top-7 the UI actually displays.
-      const byRecent=(a,b)=>(b.readUpdateTime||0)-(a.readUpdateTime||0);
-      const missing=enriched.filter(b=>b.status==="reading"&&!b.bookKey).sort(byRecent).slice(0,7);
-      if(missing.length){
-        const results=await Promise.allSettled(missing.map(b=>fetchBookInfo(cfg.wereadKey,b.id)));
-        const infoMap={}, errMap={};
-        missing.forEach((b,i)=>{
-          const r=results[i];
-          if(r.status==="fulfilled"&&r.value) infoMap[b.id]=r.value;
-          else errMap[b.id]=r.status==="rejected"?(r.reason?.message||String(r.reason)):"無結果";
-        });
-        enriched=enriched.map(b=>b.bookKey?b:{...b,bookKey:infoMap[b.id]||"",bookKeyError:errMap[b.id]||""});
-      }
+      const enriched=books.map(b=>b.bookKey?b:{...b,bookKey:km[String(b.id)]||""});
       setState({ books:enriched,stats,highlights:hlResult.items,highlightTotal:hlResult.total,wereadLoading:false });
     })
     .catch((e)=>{ setState({ wereadError:"微信讀書連接失敗，點擊重試 ("+e.message+")", wereadLoading:false }); });
@@ -602,10 +582,6 @@ function renderMain(){
       card.appendChild(el("div",{className:"bookcard-progress"},
         el("div",{className:"bookcard-pct"},
           el("span",{},"已讀 "+fmtMin(Math.round(book.readingTime/60))))));
-    }
-    if(!book.bookKey){
-      card.appendChild(el("div",{style:{fontSize:"8px",color:"#ccc",marginTop:"2px"}},
-        "debug: 無bookKey"+(book.bookKeyError?" — "+book.bookKeyError:"")));
     }
     bl.appendChild(card);
   });
