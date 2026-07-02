@@ -720,6 +720,7 @@ function renderMain(){
     }},checked?"☑":"□");
     const del=el("span",{className:"todo-del",onClick:e=>{
       e.stopPropagation();
+      localStorage.removeItem(ck);
       const next=todos.filter(t=>t.id!==todo.id);
       saveTodos(next);
       setState({todos:next,todoEditId:null});
@@ -746,7 +747,7 @@ function renderMain(){
     todoList.appendChild(el("div",{className:"todo"},check,label,del));
   });
   const addBtn=el("button",{className:"todo-add",onClick:()=>{
-    const newId=todos.reduce((m,t)=>Math.max(m,t.id),-1)+1;
+    const newId=Date.now();
     const next=[...todos,{id:newId,text:""}];
     saveTodos(next);
     setState({todos:next,todoEditId:newId});
